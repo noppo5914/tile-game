@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
+    <title>脳トレ：3マッチタイルパズル</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            color: #1a365d;
+            font-size: 22px;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        #level-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e65100;
+            background-color: #fff3e0;
+            padding: 4px 15px;
+            border-radius: 20px;
+            border: 2px solid #ffb74d;
+            margin-bottom: 5px;
+        }
+
+        .instructions {
+            font-size: 13px;
+            color: #4a5568;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+            padding: 0 10px;
+        }
+
+        #board {
+            position: relative;
+            width: 92vw;
+            max-width: 460px;
+            height: 420px;
+            background-color: #ffffff;
+            border: 3px solid #1a365d;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* ★タイルのサイズ指定を％ベースにして、ビューアでのサイズ消失を防ぎました */
+        .tile {
+            position: absolute;
+            width: 14%;
+            height: 14%;
+            max-width: 60px;
+            max-height: 60px;
+            background-color: #ffeb3b;
+            border: 2px solid #e65100;
+            box-shadow: 0 4px 0 #b33900;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        @media (min-width: 500px) {
+            .tile { font-size: 36px; }
+        }
+
+        .tile:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b33900;
+        }
+
+        @keyframes blink {
+            0% { background-color: #ffeb3b; border-color: #e65100; }
+            50% { background-color: #ffffff; border-color: #ff0000; transform: scale(1.05); z-index: 9999 !important; }
+            100% { background-color: #ffeb3b; border-color: #e65100; }
+        }
+        .hint-blink {
+            animation: blink 0.5s linear 3;
+        }
+
+        .support-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+            width: 92vw;
+            max-width: 460px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn-support {
+            flex: 1;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 8px 5px;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+
+        #undo-btn { background-color: #ff9800; box-shadow: 0 3px 0 #e65100; }
+        #undo-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #e65100; }
+        
+        #hint-btn { background-color: #00bcd4; box-shadow: 0 3px 0 #0097a7; }
+        #hint-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #0097a7; }
+        #hint-btn:disabled { background-color: #9e9e9e; box-shadow: 0 3px 0 #757575; cursor: not-allowed; opacity: 0.7; }
+
+        #retry-btn { background-color: #4caf50; box-shadow: 0 3px 0 #2e7d32; }
+        #retry-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #2e7d32; }
+
+        #restart-btn { background-color: #e53935; box-shadow: 0 3px 0 #b71c1c; }
+        #restart-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #b71c1c; }
+
+        .btn-subtext {
+            font-size: 10px;
+            margin-top: 1px;
+            font-weight: normal;
+        }
+
+        .stock-container {
+            text-align: center;
+            width: 92vw;
+            max-width: 460px;
+        }
+
+        .stock-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1a365d;
+            margin-bottom: 4px;
+        }
+
+        #stock-area {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+            height: 70px;
+            background-color: #e2e8f0;
+            border: 3px dashed #718096;
+            border-radius: 12px;
+            padding: 6px;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stock-tile {
+            width: 11%;
+            height: 75%;
+            max-width: 50px;
+            max-height: 50px;
+            background-color: #fffde7;
+            border: 2px solid #f57c00;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: 0 2px 0 #ccc;
+        }
+
+        #message-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+
+        #message-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 25px;
+            text-align: center;
+            padding: 0 20px;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+
+        .message-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .msg-btn {
+            font-size: 15px;
+            font-weight: bold;
+            padding: 12px 10px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            touch-action: manipulation;
+        }
+        .msg-btn:active {
+            transform: translateY(2px);
+        }
+
+        #next-btn { background-color: #4caf50; box-shadow: 0 4px 0 #2e7d32; }
+        #next-btn:active { box-shadow: 0 1px 0 #2e7d32; }
+
+        #msg-retry-btn { background-color: #ff9800; box-shadow: 0 4px 0 #e65100; }
+        #msg-retry-btn:active { box-shadow: 0 1px 0 #e65100; }
+
+        #msg-restart-btn { background-color: #e53935; box-shadow: 0 4px 0 #b71c1c; }
+        #msg-restart-btn:active { box-shadow: 0 1px 0 #b71c1c; }
+    </style>
+</head>
+<body>
+
+    <h1>脳トレ！みつけて３マッチ</h1>
+    <div id="level-display">レベル 1</div>
+    <div class="instructions">おなじ絵柄を３つ集めよう！上に重なりがあるタイルは取れないよ。</div>
+
+    <div id="board"></div>
+
+    <div class="support-container">
+        <div class="button-row">
+            <button id="undo-btn" class="btn-support" onclick="undoLastMove()">
+                <span>↩ １手もどる</span>
+            </button>
+            <button id="hint-btn" class="btn-support" onclick="showHint()">
+                <span>💡 ヒント</span>
+                <span id="hint-count" class="btn-subtext">あと 3 回</span>
+            </button>
+        </div>
+        <div class="button-row">
+            <button id="retry-btn" class="btn-support" onclick="retryCurrentLevel()">
+                <span>🔁 やり直す</span>
+            </button>
+            <button id="restart-btn" class="btn-support" onclick="restartFromLevelOne()">
+                <span>🚩 最初から</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="stock-container">
+        <div class="stock-label">あつめたタイル</div>
+        <div id="stock-area"></div>
+    </div>
+
+    <div id="message-screen">
+        <div id="message-text"></div>
+        <div id="message-buttons-area" class="message-buttons"></div>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playNote(freq, startTime, duration, type = 'sine', volume = 0.2) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(volume, startTime);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                osc.start(startTime); osc.stop(startTime + duration);
+            } catch(e) {}
+        }
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            if (type === 'tap') playNote(600, now, 0.1, 'sine', 0.3);
+            else if (type === 'locked-tap') playNote(180, now, 0.15, 'triangle', 0.25); 
+            else if (type === 'match') {
+                playNote(523.25, now, 0.1, 'triangle', 0.4);
+                playNote(783.99, now + 0.08, 0.2, 'triangle', 0.4);
+            } 
+            else if (type === 'button') playNote(440, now, 0.12, 'sine', 0.2);
+            else if (type === 'clear') {
+                const C4 = 261.63, E4 = 329.63, G4 = 392.00, C5 = 523.25;
+                playNote(C4, now, 0.3, 'triangle', 0.15); playNote(E4, now, 0.3, 'triangle', 0.15);
+                playNote(G4, now, 0.3, 'triangle', 0.15); playNote(C5, now, 0.3, 'sine', 0.2);
+            } 
+            else if (type === 'gameover') {
+                try {
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(293.66, now); osc.frequency.linearRampToValueAtTime(196.00, now + 0.5);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                } catch(e){}
+            }
+        }
+
+        const allEmojiList = ['🐶', '🐱', '🦊', '🐻', '🐼', '🍎', '🍇', '🍉', '🍓', '🚗', '✈️', '🚀', '⚽'];
+        let currentLevel = 1;
+        let stock = [];
+        let history = []; 
+        let hintCount = 3;
+
+        function initGame() {
+            const board = document.getElementById('board');
+            const stockArea = document.getElementById('stock-area');
+            const messageScreen = document.getElementById('message-screen');
+            const hintBtn = document.getElementById('hint-btn');
+            const hintText = document.getElementById('hint-count');
+            document.getElementById('level-display').innerText = `レベル ${currentLevel}`;
+            
+            board.innerHTML = '';
+            stockArea.innerHTML = '';
+            stock = [];
+            history = [];
+            hintCount = 3;
+            
+            hintBtn.disabled = false;
+            hintText.innerText = `あと ${hintCount} 回`;
+            messageScreen.style.display = 'none';
+
+            let emojiCount = 4 + currentLevel; 
+            if (emojiCount > allEmojiList.length) emojiCount = allEmojiList.length;
+            const activeEmojis = allEmojiList.slice(0, emojiCount);
+            
+            let currentTilesData = [];
+            activeEmojis.forEach(emoji => { currentTilesData.push(emoji, emoji, emoji); });
+            const shuffledTiles = currentTilesData.sort(() => Math.random() - 0.5);
+
+            // ★どんな簡易ビューアでも確実にサイズを取得・配置できるよう計算を改善
+            const boardWidth = board.clientWidth || window.innerWidth * 0.92;
+            const boardHeight = board.clientHeight || 420;
+            const tileSize = boardWidth * 0.14;
+            
+            shuffledTiles.forEach((emoji, index) => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.innerText = emoji;
+
+                const colCount = 4;
+                const row = Math.floor(index / colCount);
+                const col = index % colCount;
+                
+                const leftSpace = (boardWidth - (tileSize * 4)) / 5;
+                const left = col * (tileSize + leftSpace) + leftSpace + (Math.random() * 10 - 5);
+                const top = row * (tileSize * 0.75) + 30 + (Math.random() * 10 - 5);
+
+                tile.style.left = `${left}px`;
+                tile.style.top = `${top}px`;
+                tile.style.zIndex = index;
+                
+                tile.dataset.emoji = emoji;
+                tile.dataset.left = left;
+                tile.dataset.top = top;
+                tile.dataset.zIndex = index;
+
+                tile.onclick = () => {
+                    if (tile.dataset.locked === "true") {
+                        playSound('locked-tap');
+                        return;
+                    }
+                    selectTile(tile, emoji);
+                };
+                board.appendChild(tile);
+            });
+
+            // ビューアの起動遅延対策として少し遅らせて状態更新
+            setTimeout(updateTileStates, 50);
+        }
+
+        function updateTileStates() {
+            const tiles = Array.from(document.querySelectorAll('#board .tile'));
+            if(tiles.length === 0) return;
+            const size = tiles[0].clientWidth || (window.innerWidth * 0.92 * 0.14);
+
+            tiles.forEach(currentTile => {
+                const currentZ = parseInt(currentTile.dataset.zIndex);
+                const currentLeft = parseFloat(currentTile.dataset.left);
+                const currentTop = parseFloat(currentTile.dataset.top);
+                let isUnder = false;
+
+                for (let i = 0; i < tiles.length; i++) {
+                    const otherTile = tiles[i];
+                    const otherZ = parseInt(otherTile.dataset.zIndex);
+                    if (otherZ > currentZ) {
+                        const otherLeft = parseFloat(otherTile.dataset.left);
+                        const otherTop = parseFloat(otherTile.dataset.top);
+                        const hasOverlapX = currentLeft < otherLeft + size && currentLeft + size > otherLeft;
+                        const hasOverlapY = currentTop < otherTop + size && currentTop + size > otherTop;
+                        if (hasOverlapX && hasOverlapY) { isUnder = true; break; }
+                    }
+                }
+                currentTile.dataset.locked = isUnder ? "true" : "false";
+            });
+        }
+
+        function selectTile(tileElement, emoji) {
+            if (stock.length >= 7) return;
+            playSound('tap');
+            history.push({
+                emoji: emoji, left: tileElement.dataset.left, top: tileElement.dataset.top, zIndex: tileElement.dataset.zIndex, previousStock: [...stock]
+            });
+            tileElement.remove();
+            stock.push(emoji);
+            stock.sort();
+            renderStock();
+            updateTileStates();
+            checkMatches();
+        }
+
+        function undoLastMove() {
+            if (history.length === 0) return;
+            playSound('button');
+            const lastMove = history.pop(); 
+            stock = lastMove.previousStock;
+            renderStock();
+            const board = document.getElementById('board');
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.innerText = lastMove.emoji;
+            tile.style.left = `${lastMove.left}px`;
+            tile.style.top = `${lastMove.top}px`;
+            tile.style.zIndex = lastMove.zIndex;
+            tile.dataset.emoji = lastMove.emoji;
+            tile.dataset.left = lastMove.left;
+            tile.dataset.top = lastMove.top;
+            tile.dataset.zIndex = lastMove.zIndex;
+            tile.onclick = () => {
+                if (tile.dataset.locked === "true") { playSound('locked-tap'); return; }
+                selectTile(tile, lastMove.emoji);
+            };
+            board.appendChild(tile);
+            updateTileStates();
+        }
+
+        function showHint() {
+            if (hintCount <= 0) return;
+            const tiles = Array.from(document.querySelectorAll('#board .tile'));
+            const playableTiles = tiles.filter(t => t.dataset.locked === "false");
+            if (playableTiles.length === 0) return;
+            playSound('button');
+            let targetEmoji = null;
+            for (let i = 0; i < stock.length; i++) {
+                const found = playableTiles.find(t => t.dataset.emoji === stock[i]);
+                if (found) { targetEmoji = stock[i]; break; }
+            }
+            if (!targetEmoji) {
+                const counts = {};
+                playableTiles.forEach(t => { counts[t.dataset.emoji] = (counts[t.dataset.emoji] || 0) + 1; });
+                let maxCount = 0;
+                for (const emoji in counts) { if (counts[emoji] > maxCount) { maxCount = counts[emoji]; targetEmoji = emoji; } }
+            }
+            if (targetEmoji) {
+                hintCount--;
+                document.getElementById('hint-count').innerText = `あと ${hintCount} 回`;
+                if (hintCount === 0) document.getElementById('hint-btn').disabled = true;
+                playableTiles.forEach(t => {
+                    if (t.dataset.emoji === targetEmoji) {
+                        t.classList.remove('hint-blink');
+                        void t.offsetWidth;
+                        t.classList.add('hint-blink');
+                    }
+                });
+            }
+        }
+
+        function retryCurrentLevel() {
+            playSound('button');
+            if (confirm(`やり直しますか？`)) initGame();
+        }
+
+        function restartFromLevelOne() {
+            playSound('button');
+            if (confirm("レベル1からやり直しますか？")) { currentLevel = 1; initGame(); }
+        }
+
+        function renderStock() {
+            const stockArea = document.getElementById('stock-area');
+            stockArea.innerHTML = '';
+            stock.forEach(emoji => {
+                const stockTile = document.createElement('div');
+                stockTile.className = 'stock-tile';
+                stockTile.innerText = emoji;
+                stockArea.appendChild(stockTile);
+            });
+        }
+
+        function checkMatches() {
+            const counts = {};
+            stock.forEach(emoji => { counts[emoji] = (counts[emoji] || 0) + 1; });
+            let matchedEmoji = null;
+            for (const emoji in counts) { if (counts[emoji] === 3) { matchedEmoji = emoji; break; } }
+            if (matchedEmoji) {
+                setTimeout(() => {
+                    playSound('match');
+                    stock = stock.filter(emoji => emoji !== matchedEmoji);
+                    history = [];
+                    renderStock();
+                    updateTileStates();
+                    checkGameStatus();
+                }, 150);
+            } else {
+                checkGameStatus();
+            }
+        }
+
+        function checkGameStatus() {
+            const board = document.getElementById('board');
+            const messageScreen = document.getElementById('message-screen');
+            const messageText = document.getElementById('message-text');
+            const buttonsArea = document.getElementById('message-buttons-area');
+            buttonsArea.innerHTML = '';
+
+            if (board.children.length === 0 && stock.length === 0) {
+                setTimeout(() => { playSound('clear'); }, 200);
+                messageText.innerText = `🎉 レベル ${currentLevel} クリア！`;
+                messageText.style.color = "#4caf50";
+                const nextBtn = document.createElement('button');
+                nextBtn.id = 'next-btn'; nextBtn.className = 'msg-btn'; nextBtn.innerText = "つぎへ進む";
+                nextBtn.onclick = () => { currentLevel++; initGame(); };
+                buttonsArea.appendChild(nextBtn);
+                messageScreen.style.display = 'flex';
+            } else if (stock.length >= 7) {
+                setTimeout(() => { playSound('gameover'); }, 200);
+                messageText.innerText = `❌ ゲームオーバー`;
+                messageText.style.color = "#f44336";
+                const retryBtn = document.createElement('button');
+                retryBtn.id = 'msg-retry-btn'; retryBtn.className = 'msg-btn'; retryBtn.innerText = `🔁 もう一度`;
+                retryBtn.onclick = () => { initGame(); };
+                const restartBtn = document.createElement('button');
+                restartBtn.id = 'msg-restart-btn'; restartBtn.className = 'msg-btn'; restartBtn.innerText = "🚩 最初から";
+                restartBtn.onclick = () => { currentLevel = 1; initGame(); };
+                buttonsArea.appendChild(retryBtn);
+                buttonsArea.appendChild(restartBtn);
+                messageScreen.style.display = 'flex';
+            }
+        }
+
+        window.onload = initGame;
+        window.onresize = updateTileStates;
+        // 簡易ビューアでタッチした瞬間に動くように背景タップもトリガーに設定
+        document.body.addEventListener('touchstart', function() { if (audioCtx.state === 'suspended') audioCtx.resume(); });
+    </script>
+</body>
+</html>
